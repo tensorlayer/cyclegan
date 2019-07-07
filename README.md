@@ -20,13 +20,13 @@ python train.py
 
 <a href="https://join.slack.com/t/tensorlayer/shared_invite/enQtMjUyMjczMzU2Njg4LWI0MWU0MDFkOWY2YjQ4YjVhMzI5M2VlZmE4YTNhNGY1NjZhMzUwMmQ2MTc0YWRjMjQzMjdjMTg2MWQ2ZWJhYzc">
 <div align="center">
-	<img src="reults/_sample_A.png" width="80%" height="50%"/>
+	<img src="results/_sample_A.png" width="80%" height="50%"/>
 </div>
 </a>
 
 <a href="https://join.slack.com/t/tensorlayer/shared_invite/enQtMjUyMjczMzU2Njg4LWI0MWU0MDFkOWY2YjQ4YjVhMzI5M2VlZmE4YTNhNGY1NjZhMzUwMmQ2MTc0YWRjMjQzMjdjMTg2MWQ2ZWJhYzc">
 <div align="center">
-        <img src="reults/199_a2b.png" width="80%" height="50%"/>
+        <img src="results/199_a2b.png" width="80%" height="50%"/>
 </div>
 </a>
 
