@@ -47,10 +47,10 @@ def get_data(images):
     # ds = ds.repeat(n_epoch)
     ds = ds.map(_map_fn, num_parallel_calls=multiprocessing.cpu_count())
     ds = ds.batch(flags.batch_size)
-    ds = ds.prefetch(buffer_size=2)
+    ds = ds.prefetch(buffer_size=20)
     return ds
 
-im_train_A, im_train_B, im_test_A, im_test_B = tl.files.load_cyclegan_dataset(filename='horse2zebra', path='data')
+im_train_A, im_train_B, im_test_A, im_test_B = tl.files.load_cyclegan_dataset(filename='apple2orange', path='data') # horse2zebra
 print("num of A", len(im_train_A))
 print("num of B", len(im_train_B))
 
