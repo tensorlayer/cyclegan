@@ -2,6 +2,8 @@
 
 - Unpaired Image-to-Image Translation using Cycle-Consistent Adversarial Networks
 
+🚀🚀🚀🚀🚀🚀 **THIS PROJECT WILL BE CLOSED AND MOVED TO [THIS FOLDER](https://github.com/tensorlayer/tensorlayer/tree/master/examples) IN NEXT MONTH.**
+
 ## Requirement
 
 - TensorFlow >= 2.0.0beta
