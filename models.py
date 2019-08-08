@@ -3,7 +3,7 @@
 
 import tensorflow as tf
 import tensorlayer as tl
-from tensorlayer.layers import (BatchNorm, Conv2d, Dense, Flatten, Input, DeConv2d, Lambda, \
+from tensorlayer.layers import (BatchNorm2d, Conv2d, Dense, Flatten, Input, DeConv2d, Lambda, \
                                 LocalResponseNorm, MaxPool2d, Elementwise, InstanceNorm2d)
 from tensorlayer.models import Model
 from data import flags
