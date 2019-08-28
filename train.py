@@ -41,9 +41,7 @@ def train():
     # Db.load_weights(flags.model_dir + '/Db.h5')
 
     for epoch in range(0, flags.n_epoch):
-        start_time = time.time()
-
-        # reduce lr after 100 epochs, from lr_init to 0
+        # reduce lr linearly after 100 epochs, from lr_init to 0
         if epoch >= 100:
             new_lr = flags.lr_init - flags.lr_init * (epoch - 100) / 100
             lr_v.assign(lr_v, new_lr)
