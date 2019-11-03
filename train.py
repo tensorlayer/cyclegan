@@ -238,18 +238,19 @@ def parallel_train(kungfu_option):
                 broadcast_variables(optimizer_Da.variables())
                 broadcast_variables(optimizer_Db.variables())
 
-        # visualization
-        outb = Gab(sample_A)
-        outa = Gba(sample_B)
-        tl.vis.save_images(outb.numpy(), [5, 5], flags.sample_dir+'/{}_a2b.png'.format(epoch))
-        tl.vis.save_images(outa.numpy(), [5, 5], flags.sample_dir+'/{}_b2a.png'.format(epoch))
+        if current_rank() == 0:
+            # visualization
+            outb = Gab(sample_A)
+            outa = Gba(sample_B)
+            tl.vis.save_images(outb.numpy(), [5, 5], flags.sample_dir+'/{}_a2b.png'.format(epoch))
+            tl.vis.save_images(outa.numpy(), [5, 5], flags.sample_dir+'/{}_b2a.png'.format(epoch))
 
-        # save models
-        if epoch % 5:
-            Gab.save_weights(flags.model_dir + '/Gab.h5')
-            Gba.save_weights(flags.model_dir + '/Gba.h5')
-            Da.save_weights(flags.model_dir + '/Da.h5')
-            Db.save_weights(flags.model_dir + '/Db.h5')
+            # save models
+            if epoch % 5:
+                Gab.save_weights(flags.model_dir + '/Gab.h5')
+                Gba.save_weights(flags.model_dir + '/Gba.h5')
+                Da.save_weights(flags.model_dir + '/Da.h5')
+                Db.save_weights(flags.model_dir + '/Db.h5')
 
 def eval():
     Gab = models.get_G()
