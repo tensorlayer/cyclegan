@@ -1,1 +1,2 @@
-tensorlayer>=2.0.0
+tensorlayer==2.0.1
+tensorflow==2.0.0
