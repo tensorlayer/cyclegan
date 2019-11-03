@@ -238,6 +238,7 @@ def parallel_train(kungfu_option):
                 broadcast_variables(optimizer_Da.variables())
                 broadcast_variables(optimizer_Db.variables())
 
+        # KungFu: let the first worker to do visuliazation and checkpoints.
         if current_rank() == 0:
             # visualization
             outb = Gab(sample_A)
@@ -269,7 +270,7 @@ def eval():
         tl.vis.save_images(o.numpy(), [5, 5], flags.sample_dir+'/eval_{}_b2a.png'.format(i))
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='OpenPose-plus.')
+    parser = argparse.ArgumentParser(description='CycleGAN.')
     parser.add_argument('--kf-optimizer',
                         type=str,
                         default='sma',
