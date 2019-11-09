@@ -133,21 +133,22 @@ def train(parallel, kungfu_option):
                 epoch, flags.n_epoch, step, n_step_per_epoch, time.time()-step_time, \
                 loss_Gab, loss_Gba, loss_cyc, loss_Da, loss_Db))
 
-            # KungFu: broadcast is done after the first gradient step to ensure optimizer initialization.
-            if step == 0:
-                from kungfu.tensorflow.initializer import broadcast_variables
+            if parallel:
+                # KungFu: broadcast is done after the first gradient step to ensure optimizer initialization.
+                if step == 0:
+                    from kungfu.tensorflow.initializer import broadcast_variables
 
-                # Broadcast model variables
-                broadcast_variables(Gab.trainable_weights)
-                broadcast_variables(Gba.trainable_weights)
-                broadcast_variables(Da.trainable_weights)
-                broadcast_variables(Db.trainable_weights)
+                    # Broadcast model variables
+                    broadcast_variables(Gab.trainable_weights)
+                    broadcast_variables(Gba.trainable_weights)
+                    broadcast_variables(Da.trainable_weights)
+                    broadcast_variables(Db.trainable_weights)
 
-                # Broadcast optimizer variables
-                broadcast_variables(optimizer_Gab.variables())
-                broadcast_variables(optimizer_Gba.variables())
-                broadcast_variables(optimizer_Da.variables())
-                broadcast_variables(optimizer_Db.variables())
+                    # Broadcast optimizer variables
+                    broadcast_variables(optimizer_Gab.variables())
+                    broadcast_variables(optimizer_Gba.variables())
+                    broadcast_variables(optimizer_Da.variables())
+                    broadcast_variables(optimizer_Db.variables())
 
         is_chief = not parallel
         if not is_chief:
