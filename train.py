@@ -83,7 +83,7 @@ def train(parallel, kungfu_option):
             print("New learning rate %f" % new_lr)
 
         # train 1 epoch
-        for step, (image_A, image_B) in enumerate(zip(data_A_shard, data_A_shard)):
+        for step, (image_A, image_B) in enumerate(zip(data_A_shard, data_B_shard)):
             if image_A.shape[0] != flags.batch_size or image_B.shape[0] != flags.batch_size : # if the remaining data in this epoch < batch_size
                 break
             step_time = time.time()
@@ -133,27 +133,27 @@ def train(parallel, kungfu_option):
                 epoch, flags.n_epoch, step, n_step_per_epoch, time.time()-step_time, \
                 loss_Gab, loss_Gba, loss_cyc, loss_Da, loss_Db))
 
-            if parallel:
+            if parallel and step == 0:
                 # KungFu: broadcast is done after the first gradient step to ensure optimizer initialization.
-                if step == 0:
-                    from kungfu.tensorflow.initializer import broadcast_variables
+                from kungfu.tensorflow.initializer import broadcast_variables
 
-                    # Broadcast model variables
-                    broadcast_variables(Gab.trainable_weights)
-                    broadcast_variables(Gba.trainable_weights)
-                    broadcast_variables(Da.trainable_weights)
-                    broadcast_variables(Db.trainable_weights)
+                # Broadcast model variables
+                broadcast_variables(Gab.trainable_weights)
+                broadcast_variables(Gba.trainable_weights)
+                broadcast_variables(Da.trainable_weights)
+                broadcast_variables(Db.trainable_weights)
 
-                    # Broadcast optimizer variables
-                    broadcast_variables(optimizer_Gab.variables())
-                    broadcast_variables(optimizer_Gba.variables())
-                    broadcast_variables(optimizer_Da.variables())
-                    broadcast_variables(optimizer_Db.variables())
+                # Broadcast optimizer variables
+                broadcast_variables(optimizer_Gab.variables())
+                broadcast_variables(optimizer_Gba.variables())
+                broadcast_variables(optimizer_Da.variables())
+                broadcast_variables(optimizer_Db.variables())
 
-        is_chief = not parallel
-        if not is_chief:
+        if parallel:
             from kungfu import current_rank
             is_chief = current_rank() == 0
+        else:
+            is_chief = True
 
         # Let the chief worker to do visuliazation and checkpoints.
         if is_chief:
