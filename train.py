@@ -8,7 +8,7 @@ import tensorflow as tf
 import tensorlayer as tl
 import models
 from data import flags, data_A, data_B, im_test_A, im_test_B, n_step_per_epoch
-
+ 
 im_test_A = np.asarray(im_test_A, dtype=np.float32) / 127.5 - 1
 im_test_B = np.asarray(im_test_B, dtype=np.float32)  / 127.5 - 1
 
