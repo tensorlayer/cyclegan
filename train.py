@@ -31,33 +31,24 @@ def train(parallel, kungfu_option):
     Db.train()
 
     lr_v = tf.Variable(flags.lr_init)
-    optimizer_Gab = tf.optimizers.Adam(lr_v, beta_1=flags.beta_1)
-    optimizer_Gba = tf.optimizers.Adam(lr_v, beta_1=flags.beta_1)
-    optimizer_Da = tf.optimizers.Adam(lr_v, beta_1=flags.beta_1)
-    optimizer_Db = tf.optimizers.Adam(lr_v, beta_1=flags.beta_1)
+    optimizer_Gab_Db = tf.optimizers.Adam(lr_v, beta_1=flags.beta_1)
+    optimizer_Gba_Da = tf.optimizers.Adam(lr_v, beta_1=flags.beta_1)
 
     # KungFu: wrap the optimizers
     if parallel:
         from kungfu.tensorflow.optimizers import SynchronousSGDOptimizer, SynchronousAveragingOptimizer, PairAveragingOptimizer
         if kungfu_option == 'sync-sgd':
-            optimizer_Gab = SynchronousSGDOptimizer(optimizer_Gab)
-            optimizer_Gba = SynchronousSGDOptimizer(optimizer_Gba)
-            optimizer_Da = SynchronousSGDOptimizer(optimizer_Da)
-            optimizer_Db = SynchronousSGDOptimizer(optimizer_Db)
+            opt_fn = SynchronousSGDOptimizer
         elif kungfu_option == 'async-sgd':
-            optimizer_Gab = PairAveragingOptimizer(optimizer_Gab)
-            optimizer_Gba = PairAveragingOptimizer(optimizer_Gba)
-            optimizer_Da = PairAveragingOptimizer(optimizer_Da)
-            optimizer_Db = PairAveragingOptimizer(optimizer_Db)
+            opt_fn = PairAveragingOptimizer
         elif kungfu_option == 'sma':
-            optimizer_Gab = SynchronousAveragingOptimizer(optimizer_Gab)
-            optimizer_Gba = SynchronousAveragingOptimizer(optimizer_Gba)
-            optimizer_Da = SynchronousAveragingOptimizer(optimizer_Da)
-            optimizer_Db = SynchronousAveragingOptimizer(optimizer_Db)
+            opt_fn = SynchronousAveragingOptimizer
         else:
             raise RuntimeError('Unknown distributed training optimizer.')
+        optimizer_Gab_Db = opt_fn(optimizer_Gab_Db)
+        optimizer_Gba_Da = opt_fn(optimizer_Gba_Da)
 
-    # Gab.load_weights(flags.model_dir + '/Gab.h5')
+    # Gab.load_weights(flags.model_dir + '/Gab.h5') # restore params?
     # Gba.load_weights(flags.model_dir + '/Gba.h5')
     # Da.load_weights(flags.model_dir + '/Da.h5')
     # Db.load_weights(flags.model_dir + '/Db.h5')
@@ -120,16 +111,15 @@ def train(parallel, kungfu_option):
                 loss_cyc = 10. * (tf.reduce_mean(tf.abs(image_A - cycle_A)) + tf.reduce_mean(tf.abs(image_B - cycle_B)))
                 loss_Gab_total = loss_Gab + loss_cyc
                 loss_Gba_total = loss_Gba + loss_cyc
-            grad = tape.gradient(loss_Gab_total, Gab.trainable_weights)
-            optimizer_Gab.apply_gradients(zip(grad, Gab.trainable_weights))
-            grad = tape.gradient(loss_Gba_total, Gba.trainable_weights)
-            optimizer_Gba.apply_gradients(zip(grad, Gba.trainable_weights))
-            grad = tape.gradient(loss_Da, Da.trainable_weights)
-            optimizer_Da.apply_gradients(zip(grad, Da.trainable_weights))
-            grad = tape.gradient(loss_Db, Db.trainable_weights)
-            optimizer_Db.apply_gradients(zip(grad, Db.trainable_weights))
+                loss_Gab_Db_total = loss_Gab_total + loss_Db
+                loss_Gba_Da_total = loss_Gba_total + loss_Da
+            grad = tape.gradient(loss_Gba_Da_total, Gba.trainable_weights+Da.trainable_weights)
+            optimizer_Gba_Da.apply_gradients(zip(grad, Gba.trainable_weights+Da.trainable_weights))
+            grad = tape.gradient(loss_Gab_Db_total, Gab.trainable_weights+Db.trainable_weights)
+            optimizer_Gab_Db.apply_gradients(zip(grad, Gab.trainable_weights+Db.trainable_weights))
+
             # del tape
-            print("Epoch[{}/{}] step[{}/{}] time:{} Gab:{} Gba:{} cyc:{} Da:{} Db:{}".format(\
+            print("Epoch[{}/{}] step[{}/{}] time:{:5f} Gab:{:5f} Gba:{:5f} cyc:{:5f} Da:{:5f} Db:{:5f}".format(\
                 epoch, flags.n_epoch, step, n_step_per_epoch, time.time()-step_time, \
                 loss_Gab, loss_Gba, loss_cyc, loss_Da, loss_Db))
 

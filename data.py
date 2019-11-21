@@ -50,7 +50,7 @@ def get_data(images):
     ds = ds.prefetch(buffer_size=20)
     return ds
 
-im_train_A, im_train_B, im_test_A, im_test_B = tl.files.load_cyclegan_dataset(filename='apple2orange', path='data') # horse2zebra
+im_train_A, im_train_B, im_test_A, im_test_B = tl.files.load_cyclegan_dataset(filename='horse2zebra', path='data') # horse2zebra apple2orange
 print("num of A", len(im_train_A))
 print("num of B", len(im_train_B))
 
