@@ -6,6 +6,9 @@ Unpaired Image-to-Image Translation using Cycle-Consistent Adversarial Networks
 
 Check the `requirements.txt`
 
+## TODO
+- replay buffer
+
 ## Run
 
 It will automatically download the data in `data.py`.

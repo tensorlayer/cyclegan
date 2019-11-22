@@ -23,24 +23,33 @@ def get_data(images):
     def generator_fn():
         for image in images:
             yield image
-    def prepro_fn(x):
-        M_rotate = tl.prepro.affine_rotation_matrix(angle=(-16, 16))
-        M_flip = tl.prepro.affine_horizontal_flip_matrix(prob=0.5)
-        M_zoom = tl.prepro.affine_zoom_matrix(zoom_range=(0.8, 1.2))
-        h, w, _ = x.shape
-        M_combined = M_zoom.dot(M_flip).dot(M_rotate)
-        transform_matrix = tl.prepro.transform_matrix_offset_center(M_combined, x=w, y=h)
-        x = tl.prepro.affine_transform_cv2(x, transform_matrix, border_mode='replicate')
-            # x = tl.prepro.flip_axis(x, axis=1, is_random=True)
-            # x = tl.prepro.rotation(x, rg=16, is_random=True, fill_mode='nearest')
-        # x = tl.prepro.imresize(x, size=[int(h * 1.2), int(w * 1.2)], interp='bicubic', mode=None)
-        # x = tl.prepro.crop(x, wrg=256, hrg=256, is_random=True)
+    # def prepro_fn(x):
+    #
+    #     # https://github.com/aitorzip/PyTorch-CycleGAN/blob/master/train#L82 Hao: 需要和他一样吗？这个也不是官方的
+    #
+    #     M_rotate = tl.prepro.affine_rotation_matrix(angle=(-16, 16))
+    #     M_flip = tl.prepro.affine_horizontal_flip_matrix(prob=0.5)
+    #     M_zoom = tl.prepro.affine_zoom_matrix(zoom_range=(0.8, 1.2))
+    #     h, w, _ = x.shape
+    #     M_combined = M_zoom.dot(M_flip).dot(M_rotate)
+    #     transform_matrix = tl.prepro.transform_matrix_offset_center(M_combined, x=w, y=h)
+    #     x = tl.prepro.affine_transform_cv2(x, transform_matrix, border_mode='replicate')
+    #         # x = tl.prepro.flip_axis(x, axis=1, is_random=True)
+    #         # x = tl.prepro.rotation(x, rg=16, is_random=True, fill_mode='nearest')
+    #     # x = tl.prepro.imresize(x, size=[int(h * 1.2), int(w * 1.2)], interp='bicubic', mode=None)
+    #     # x = tl.prepro.crop(x, wrg=256, hrg=256, is_random=True)
+    #     x = x / 127.5 - 1.
+    #     return x
+    def _map_fn(x):
+        # x = tf.numpy_function(prepro_fn, [x], [tf.float32]) # slow
+        # return x[0]
+        x.set_shape([256, 256, 3])
+        x = tf.image.resize(x, size=[int(256*1.12), int(256*1.12)])
+        x = tf.image.random_crop(x, size=[256, 256, 3])
+        x = tf.image.random_flip_left_right(x)
         x = x / 127.5 - 1.
         return x
-    def _map_fn(x):
-        # x = tf.image.convert_image_dtype(x, dtype=tf.float32)
-        x = tf.numpy_function(prepro_fn, [x], [tf.float32])
-        return x[0]
+
     ds = tf.data.Dataset.from_generator(
         generator_fn, output_types=(tf.float32))
     ds = ds.shuffle(flags.shuffle_buffer_size)
