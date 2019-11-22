@@ -152,7 +152,7 @@ def train(parallel, kungfu_option):
                 broadcast_variables(optimizer_Gba.variables())
                 broadcast_variables(optimizer_Da.variables())
                 broadcast_variables(optimizer_Db.variables())
- 
+
         if parallel:
             from kungfu import current_rank
             is_chief = current_rank() == 0
@@ -181,14 +181,14 @@ def eval():
     Gba.eval()
     Gab.load_weights(flags.model_dir + '/Gab.h5')
     Gba.load_weights(flags.model_dir + '/Gba.h5')
-    for i, (x, _) in enumerate(tl.iterate.minibatches(inputs=im_test_A, targets=im_test_A, batch_size=25, shuffle=False)):
+    for i, (x, _) in enumerate(tl.iterate.minibatches(inputs=im_test_A, targets=im_test_A, batch_size=5, shuffle=False)):
         o = Gab(x)
-        tl.vis.save_images(x, [5, 5], flags.sample_dir+'/eval_{}_a.png'.format(i))
-        tl.vis.save_images(o.numpy(), [5, 5], flags.sample_dir+'/eval_{}_a2b.png'.format(i))
-    for i, (x, _) in enumerate(tl.iterate.minibatches(inputs=im_test_B, targets=im_test_B, batch_size=25, shuffle=False)):
+        tl.vis.save_images(x, [1, 5], flags.sample_dir+'/eval_{}_a.png'.format(i))
+        tl.vis.save_images(o.numpy(), [1, 5], flags.sample_dir+'/eval_{}_a2b.png'.format(i))
+    for i, (x, _) in enumerate(tl.iterate.minibatches(inputs=im_test_B, targets=im_test_B, batch_size=5, shuffle=False)):
         o = Gba(x)
-        tl.vis.save_images(x, [5, 5], flags.sample_dir+'/eval_{}_b.png'.format(i))
-        tl.vis.save_images(o.numpy(), [5, 5], flags.sample_dir+'/eval_{}_b2a.png'.format(i))
+        tl.vis.save_images(x, [1, 5], flags.sample_dir+'/eval_{}_b.png'.format(i))
+        tl.vis.save_images(o.numpy(), [1, 5], flags.sample_dir+'/eval_{}_b2a.png'.format(i))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='CycleGAN.')
