@@ -36,6 +36,8 @@ def train(parallel, kungfu_option):
     optimizer_G = tf.optimizers.Adam(lr_v, beta_1=flags.beta_1)
     optimizer_D = tf.optimizers.Adam(lr_v, beta_1=flags.beta_1)
 
+    use_ident = False
+
     # KungFu: wrap the optimizers
     if parallel:
         from kungfu.tensorflow.optimizers import SynchronousSGDOptimizer, SynchronousAveragingOptimizer, PairAveragingOptimizer
@@ -86,8 +88,9 @@ def train(parallel, kungfu_option):
                 fake_A = Gba(image_B)
                 cycle_A = Gba(fake_B)
                 cycle_B = Gab(fake_A)
-                iden_A = Gba(image_A)
-                iden_B = Gab(image_B)
+                if use_ident:
+                    iden_A = Gba(image_A)
+                    iden_B = Gab(image_B)
                 logits_fake_B = Db(fake_B)    # TODO: missing image buffer (pool)
                 logits_real_B = Db(image_B)
                 logits_fake_A = Da(fake_A)
@@ -114,7 +117,10 @@ def train(parallel, kungfu_option):
                 #     tl.cost.absolute_difference_error(image_B, cycle_B, is_mean=True))
                 loss_cyc = 10. * (tf.reduce_mean(tf.abs(image_A - cycle_A)) + tf.reduce_mean(tf.abs(image_B - cycle_B)))
 
-                loss_iden = 5. * (tf.reduce_mean(tf.abs(image_A - iden_A)) + tf.reduce_mean(tf.abs(image_B - iden_B)))
+                if use_ident:
+                    loss_iden = 5. * (tf.reduce_mean(tf.abs(image_A - iden_A)) + tf.reduce_mean(tf.abs(image_B - iden_B)))
+                else:
+                    loss_iden = 0.
 
             #     loss_Gab_total = loss_Gab + loss_cyc + loss_iden
             #     loss_Gba_total = loss_Gba + loss_cyc + loss_iden
