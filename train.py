@@ -139,7 +139,7 @@ def train(parallel, kungfu_option):
             optimizer_D.apply_gradients(zip(grad, Da.trainable_weights+Db.trainable_weights))
 
             # del tape
-            print("Epoch[{}/{}] step[{}/{}] time:{:5f} Gab:{:5f} Gba:{:5f} cyc:{:5f} iden:{:5f} Da:{:5f} Db:{:5f}".format(\
+            print("Epoch[{}/{}] step[{}/{}] time:{:.3f} Gab:{:.3f} Gba:{:.3f} cyc:{:.3f} iden:{:.3f} Da:{:.3f} Db:{:.3f}".format(\
                 epoch, flags.n_epoch, step, n_step_per_epoch, time.time()-step_time, \
                 loss_Gab, loss_Gba, loss_cyc, loss_iden, loss_Da, loss_Db))
 

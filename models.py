@@ -45,10 +45,9 @@ def get_D(name=None):
     lrelu = lambda x: tl.act.lrelu(x, 0.2)
 
     nx = Input((flags.batch_size, 256, 256, 3))
+            # n = Lambda(lambda x: tf.image.random_crop(x, [flags.batch_size, 70, 70, 3]))(nx)
 
-    n = Lambda(lambda x: tf.image.random_crop(x, [flags.batch_size, 70, 70, 3]))(nx) # patchGAN
-
-    n = Conv2d(64, (4, 4), (2, 2), act=lrelu, W_init=w_init)(n)
+    n = Conv2d(64, (4, 4), (2, 2), act=lrelu, W_init=w_init)(nx)
     n = Conv2d(128, (4, 4), (2, 2), W_init=w_init)(n)
     n = InstanceNorm2d(act=lrelu)(n)
 
