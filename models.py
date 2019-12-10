@@ -54,10 +54,10 @@ def get_D(name=None):
     n = Conv2d(256, (4, 4), (2, 2), W_init=w_init)(n)
     n = InstanceNorm2d(act=lrelu)(n)
 
-    n = Conv2d(512, (4, 4), (2, 2), W_init=w_init)(n)
+    n = Conv2d(512, (4, 4), (1, 1), W_init=w_init)(n)
     n = InstanceNorm2d(act=lrelu)(n)
 
-    n = Conv2d(1, (4, 4), (4, 4), padding='VALID', W_init=w_init)(n)
+    n = Conv2d(1, (4, 4), (1, 1), padding='VALID', W_init=w_init)(n)
     n = Flatten()(n)
     assert n.shape[-1] == 1
     M = Model(inputs=nx, outputs=n, name=name)
