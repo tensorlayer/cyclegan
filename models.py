@@ -59,6 +59,5 @@ def get_D(name=None):
 
     n = Conv2d(1, (4, 4), (1, 1), padding='VALID', W_init=w_init)(n)
     n = Flatten()(n)
-    assert n.shape[-1] == 1
     M = Model(inputs=nx, outputs=n, name=name)
     return M
