@@ -177,10 +177,23 @@ def train(parallel, kungfu_option):
         # Let the chief worker to do visuliazation and checkpoints.
         if is_chief:
             # visualization
-            outb = Gab(sample_A)
-            outa = Gba(sample_B)
-            tl.vis.save_images(outb.numpy(), [1, 5], flags.sample_dir+'/{}_a2b.png'.format(epoch))
-            tl.vis.save_images(outa.numpy(), [1, 5], flags.sample_dir+'/{}_b2a.png'.format(epoch))
+
+            # outb = Gab(sample_A)
+            # outa = Gba(sample_B)
+            # tl.vis.save_images(outb.numpy(), [1, 5], flags.sample_dir+'/{}_a2b.png'.format(epoch))
+            # tl.vis.save_images(outa.numpy(), [1, 5], flags.sample_dir+'/{}_b2a.png'.format(epoch))
+
+            outb_list = [] # do it one by one in case your GPU memory is low
+            for i in range(len(sample_A)):
+                outb = Gab(sample_A[i][np.newaxis,:,:,:])
+                outb_list.append(outb.numpy()[0])
+
+            outa_list = []
+            for i in range(len(sample_B)):
+                outa = Gba(sample_B[i][np.newaxis,:,:,:])
+                outa_list.append(outa.numpy()[0])
+            tl.vis.save_images(np.asarray(outb_list), [1, 5], flags.sample_dir+'/{}_a2b.png'.format(epoch))
+            tl.vis.save_images(np.asarray(outa_list), [1, 5], flags.sample_dir+'/{}_b2a.png'.format(epoch))
 
             # save models
             if epoch % 5:
