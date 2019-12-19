@@ -33,8 +33,9 @@ def train(parallel, kungfu_option):
     lr_v = tf.Variable(flags.lr_init)
     # optimizer_Gab_Db = tf.optimizers.Adam(lr_v, beta_1=flags.beta_1)
     # optimizer_Gba_Da = tf.optimizers.Adam(lr_v, beta_1=flags.beta_1)
-    optimizer_G = tf.optimizers.Adam(lr_v, beta_1=flags.beta_1)
-    optimizer_D = tf.optimizers.Adam(lr_v, beta_1=flags.beta_1)
+    # optimizer_G = tf.optimizers.Adam(lr_v, beta_1=flags.beta_1)
+    # optimizer_D = tf.optimizers.Adam(lr_v, beta_1=flags.beta_1)
+    optimizer = tf.optimizers.Adam(lr_v, beta_1=flags.beta_1) # use only one optimier, if your GPU memory is large
 
     use_ident = False
 
@@ -77,6 +78,59 @@ def train(parallel, kungfu_option):
             lr_v.assign(lr_v, new_lr)
             print("New learning rate %f" % new_lr)
 
+        @tf.function
+        def train_step(image_A, image_B):
+            fake_B = Gab(image_A)
+            fake_A = Gba(image_B)
+            cycle_A = Gba(fake_B)
+            cycle_B = Gab(fake_A)
+            if use_ident:
+                iden_A = Gba(image_A)
+                iden_B = Gab(image_B)
+            logits_fake_B = Db(fake_B)    # TODO: missing image buffer (pool)
+            logits_real_B = Db(image_B)
+            logits_fake_A = Da(fake_A)
+            logits_real_A = Da(image_A)
+            # loss_Da = (tl.cost.mean_squared_error(logits_real_A, tf.ones_like(logits_real_A), is_mean=True) + \  # LSGAN
+            #     tl.cost.mean_squared_error(logits_fake_A, tf.ones_like(logits_fake_A), is_mean=True)) / 2.
+            loss_Da = tf.reduce_mean(tf.math.squared_difference(logits_fake_A, tf.zeros_like(logits_fake_A))) + \
+                tf.reduce_mean(tf.math.squared_difference(logits_real_A, tf.ones_like(logits_real_A)))
+            # loss_Da = tl.cost.sigmoid_cross_entropy(logits_fake_A, tf.zeros_like(logits_fake_A)) + \
+                # tl.cost.sigmoid_cross_entropy(logits_real_A, tf.ones_like(logits_real_A))
+            # loss_Db = (tl.cost.mean_squared_error(logits_real_B, tf.ones_like(logits_real_B), is_mean=True) + \ # LSGAN
+            #     tl.cost.mean_squared_error(logits_fake_B, tf.ones_like(logits_fake_B), is_mean=True)) / 2.
+            loss_Db = tf.reduce_mean(tf.math.squared_difference(logits_fake_B, tf.zeros_like(logits_fake_B))) + \
+                tf.reduce_mean(tf.math.squared_difference(logits_real_B, tf.ones_like(logits_real_B)))
+            # loss_Db = tl.cost.sigmoid_cross_entropy(logits_fake_B, tf.zeros_like(logits_fake_B)) + \
+            #     tl.cost.sigmoid_cross_entropy(logits_real_B, tf.ones_like(logits_real_B))
+            # loss_Gab = tl.cost.mean_squared_error(logits_fake_B, tf.ones_like(logits_fake_B), is_mean=True) # LSGAN
+            loss_Gab = tf.reduce_mean(tf.math.squared_difference(logits_fake_B, tf.ones_like(logits_fake_B)))
+            # loss_Gab = tl.cost.sigmoid_cross_entropy(logits_fake_B, tf.ones_like(logits_fake_B))
+            # loss_Gba = tl.cost.mean_squared_error(logits_fake_A, tf.ones_like(logits_fake_A), is_mean=True) # LSGAN
+            loss_Gba = tf.reduce_mean(tf.math.squared_difference(logits_fake_A, tf.ones_like(logits_fake_A)))
+            # loss_Gba = tl.cost.sigmoid_cross_entropy(logits_fake_A, tf.ones_like(logits_fake_A))
+            # loss_cyc = 10 * (tl.cost.absolute_difference_error(image_A, cycle_A, is_mean=True) + \
+            #     tl.cost.absolute_difference_error(image_B, cycle_B, is_mean=True))
+            loss_cyc = 10. * (tf.reduce_mean(tf.abs(image_A - cycle_A)) + tf.reduce_mean(tf.abs(image_B - cycle_B)))
+
+            if use_ident:
+                loss_iden = 5. * (tf.reduce_mean(tf.abs(image_A - iden_A)) + tf.reduce_mean(tf.abs(image_B - iden_B)))
+            else:
+                loss_iden = 0.
+
+        #     loss_Gab_total = loss_Gab + loss_cyc + loss_iden
+        #     loss_Gba_total = loss_Gba + loss_cyc + loss_iden
+        #     loss_Gab_Db_total = loss_Gab_total + loss_Db
+        #     loss_Gba_Da_total = loss_Gba_total + loss_Da
+        # grad = tape.gradient(loss_Gba_Da_total, Gba.trainable_weights+Da.trainable_weights)
+        # optimizer_Gba_Da.apply_gradients(zip(grad, Gba.trainable_weights+Da.trainable_weights))
+        # grad = tape.gradient(loss_Gab_Db_total, Gab.trainable_weights+Db.trainable_weights)
+        # optimizer_Gab_Db.apply_gradients(zip(grad, Gab.trainable_weights+Db.trainable_weights))
+
+            loss_G = loss_Gab + loss_Gba + loss_cyc + loss_iden
+            loss_D = loss_Da + loss_Db
+            return loss_G, loss_D, loss_Gab, loss_Gba, loss_cyc, loss_iden, loss_Da, loss_Db, loss_D+loss_G
+
         # train 1 epoch
         for step, (image_A, image_B) in enumerate(zip(data_A_shard, data_B_shard)):
             if image_A.shape[0] != flags.batch_size or image_B.shape[0] != flags.batch_size : # if the remaining data in this epoch < batch_size
@@ -84,59 +138,14 @@ def train(parallel, kungfu_option):
             step_time = time.time()
             with tf.GradientTape(persistent=True) as tape:
                 # print(image_A.numpy().max())
-                fake_B = Gab(image_A)
-                fake_A = Gba(image_B)
-                cycle_A = Gba(fake_B)
-                cycle_B = Gab(fake_A)
-                if use_ident:
-                    iden_A = Gba(image_A)
-                    iden_B = Gab(image_B)
-                logits_fake_B = Db(fake_B)    # TODO: missing image buffer (pool)
-                logits_real_B = Db(image_B)
-                logits_fake_A = Da(fake_A)
-                logits_real_A = Da(image_A)
-                # loss_Da = (tl.cost.mean_squared_error(logits_real_A, tf.ones_like(logits_real_A), is_mean=True) + \  # LSGAN
-                #     tl.cost.mean_squared_error(logits_fake_A, tf.ones_like(logits_fake_A), is_mean=True)) / 2.
-                loss_Da = tf.reduce_mean(tf.math.squared_difference(logits_fake_A, tf.zeros_like(logits_fake_A))) + \
-                    tf.reduce_mean(tf.math.squared_difference(logits_real_A, tf.ones_like(logits_real_A)))
-                # loss_Da = tl.cost.sigmoid_cross_entropy(logits_fake_A, tf.zeros_like(logits_fake_A)) + \
-                    # tl.cost.sigmoid_cross_entropy(logits_real_A, tf.ones_like(logits_real_A))
-                # loss_Db = (tl.cost.mean_squared_error(logits_real_B, tf.ones_like(logits_real_B), is_mean=True) + \ # LSGAN
-                #     tl.cost.mean_squared_error(logits_fake_B, tf.ones_like(logits_fake_B), is_mean=True)) / 2.
-                loss_Db = tf.reduce_mean(tf.math.squared_difference(logits_fake_B, tf.zeros_like(logits_fake_B))) + \
-                    tf.reduce_mean(tf.math.squared_difference(logits_real_B, tf.ones_like(logits_real_B)))
-                # loss_Db = tl.cost.sigmoid_cross_entropy(logits_fake_B, tf.zeros_like(logits_fake_B)) + \
-                #     tl.cost.sigmoid_cross_entropy(logits_real_B, tf.ones_like(logits_real_B))
-                # loss_Gab = tl.cost.mean_squared_error(logits_fake_B, tf.ones_like(logits_fake_B), is_mean=True) # LSGAN
-                loss_Gab = tf.reduce_mean(tf.math.squared_difference(logits_fake_B, tf.ones_like(logits_fake_B)))
-                # loss_Gab = tl.cost.sigmoid_cross_entropy(logits_fake_B, tf.ones_like(logits_fake_B))
-                # loss_Gba = tl.cost.mean_squared_error(logits_fake_A, tf.ones_like(logits_fake_A), is_mean=True) # LSGAN
-                loss_Gba = tf.reduce_mean(tf.math.squared_difference(logits_fake_A, tf.ones_like(logits_fake_A)))
-                # loss_Gba = tl.cost.sigmoid_cross_entropy(logits_fake_A, tf.ones_like(logits_fake_A))
-                # loss_cyc = 10 * (tl.cost.absolute_difference_error(image_A, cycle_A, is_mean=True) + \
-                #     tl.cost.absolute_difference_error(image_B, cycle_B, is_mean=True))
-                loss_cyc = 10. * (tf.reduce_mean(tf.abs(image_A - cycle_A)) + tf.reduce_mean(tf.abs(image_B - cycle_B)))
+                loss_G, loss_D, loss_Gab, loss_Gba, loss_cyc, loss_iden, loss_Da, loss_Db, loss_DG = train_step(image_A, image_B)
 
-                if use_ident:
-                    loss_iden = 5. * (tf.reduce_mean(tf.abs(image_A - iden_A)) + tf.reduce_mean(tf.abs(image_B - iden_B)))
-                else:
-                    loss_iden = 0.
-
-            #     loss_Gab_total = loss_Gab + loss_cyc + loss_iden
-            #     loss_Gba_total = loss_Gba + loss_cyc + loss_iden
-            #     loss_Gab_Db_total = loss_Gab_total + loss_Db
-            #     loss_Gba_Da_total = loss_Gba_total + loss_Da
-            # grad = tape.gradient(loss_Gba_Da_total, Gba.trainable_weights+Da.trainable_weights)
-            # optimizer_Gba_Da.apply_gradients(zip(grad, Gba.trainable_weights+Da.trainable_weights))
-            # grad = tape.gradient(loss_Gab_Db_total, Gab.trainable_weights+Db.trainable_weights)
-            # optimizer_Gab_Db.apply_gradients(zip(grad, Gab.trainable_weights+Db.trainable_weights))
-
-                loss_G = loss_Gab + loss_Gba + loss_cyc + loss_iden
-                loss_D = loss_Da + loss_Db
-            grad = tape.gradient(loss_G, Gba.trainable_weights+Gab.trainable_weights)
-            optimizer_G.apply_gradients(zip(grad, Gba.trainable_weights+Gab.trainable_weights))
-            grad = tape.gradient(loss_D, Da.trainable_weights+Db.trainable_weights)
-            optimizer_D.apply_gradients(zip(grad, Da.trainable_weights+Db.trainable_weights))
+            grad = tape.gradient(loss_DG, Gba.trainable_weights+Gab.trainable_weights+Da.trainable_weights+Db.trainable_weights)
+            optimizer.apply_gradients(zip(grad, Gba.trainable_weights+Gab.trainable_weights+Da.trainable_weights+Db.trainable_weights))
+            # grad = tape.gradient(loss_G, Gba.trainable_weights+Gab.trainable_weights)
+            # optimizer_G.apply_gradients(zip(grad, Gba.trainable_weights+Gab.trainable_weights))
+            # grad = tape.gradient(loss_D, Da.trainable_weights+Db.trainable_weights)
+            # optimizer_D.apply_gradients(zip(grad, Da.trainable_weights+Db.trainable_weights))
 
             # del tape
             print("Epoch[{}/{}] step[{}/{}] time:{:.3f} Gab:{:.3f} Gba:{:.3f} cyc:{:.3f} iden:{:.3f} Da:{:.3f} Db:{:.3f}".format(\
